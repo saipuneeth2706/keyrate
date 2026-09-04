@@ -64,7 +64,7 @@ export function Hero() {
         <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">
           Practise typing from your terminal
         </h1>
-        <p className="max-w-md text-base text-slate-600">
+        <div className="max-w-md text-base text-slate-600">
           A typing{" "}
           <Tooltip
             containerClassName="text-slate-600 underline decoration-slate-400 underline-offset-2 cursor-help"
@@ -94,7 +94,7 @@ export function Hero() {
             <span className="font-medium">tachyonfx</span>
           </Tooltip>{" "}
           for silky animations. Copy this command to get started.
-        </p>
+        </div>
         <div className="mt-2 flex items-center border border-slate-300 bg-white/80 shadow-lg backdrop-blur-sm">
             <code className="px-4 py-3 text-sm font-medium text-slate-900">
               {COMMAND}
@@ -134,19 +134,35 @@ export function Hero() {
             )}
           </button>
         </div>
-        <Tooltip
-          containerClassName="mt-2 inline-block"
-          content="This is my Twitter/X handle. Click to open it in a new tab."
-        >
-          <a
-            href="https://x.com/rsaipuneeth"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block text-sm text-slate-500 underline decoration-slate-400 underline-offset-2 transition hover:text-slate-900"
+        <div className="mt-2 flex items-center justify-center gap-2 text-sm text-slate-500">
+          <Tooltip
+            containerClassName="inline-block"
+            content="Portfolio website — click to open in a new tab"
           >
-            Made by @rsaipuneeth
-          </a>
-        </Tooltip>
+            <a
+              href="https://www.saipuneeth.me"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-slate-400 underline-offset-2 transition hover:text-slate-900"
+            >
+              saipuneeth.me
+            </a>
+          </Tooltip>
+          <span className="text-slate-400">|</span>
+          <Tooltip
+            containerClassName="inline-block"
+            content="This is my Twitter/X handle. Click to open it in a new tab."
+          >
+            <a
+              href="https://x.com/rsaipuneeth"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-slate-400 underline-offset-2 transition hover:text-slate-900"
+            >
+              @rsaipuneeth
+            </a>
+          </Tooltip>
+        </div>
       </div>
     </section>
   );
