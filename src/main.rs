@@ -277,14 +277,14 @@ impl App {
                     format!("{} ", wc)
                 };
                 let key_style = if wc == self.word_count {
-                    Style::default().fg(Color::Rgb(205, 214, 244)).add_modifier(Modifier::BOLD)
+                    Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
                 } else {
-                    Style::default().fg(Color::Rgb(108, 112, 134))
+                    Style::default().fg(Color::DarkGray)
                 };
                 let label_style = if wc == self.word_count {
-                    Style::default().fg(Color::Rgb(166, 227, 161)).add_modifier(Modifier::BOLD)
+                    Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)
                 } else {
-                    Style::default().fg(Color::Rgb(108, 112, 134))
+                    Style::default().fg(Color::DarkGray)
                 };
                 vec![
                     Span::styled(key, key_style),
@@ -320,15 +320,20 @@ impl App {
             .map(|(i, c)| {
                 let style = if i < self.typed.len() {
                     match self.typed[i] {
-                        Some(ch) if ch == c => Style::default().bold().fg(Color::Rgb(166, 227, 161)),
-                        Some(_) => Style::default().fg(Color::Rgb(243, 139, 168)).add_modifier(Modifier::BOLD),
-                        None => Style::default().fg(Color::Rgb(108, 112, 134)),
+                        Some(ch) if ch == c => Style::default().bold().fg(Color::Green),
+                        Some(_) => {
+                            Style::default()
+                                .fg(Color::Indexed(196))
+                                .bg(Color::Indexed(226))
+                                .add_modifier(Modifier::BOLD)
+                        }
+                        None => Style::default().fg(Color::DarkGray),
                     }
                 } else {
-                    Style::default().fg(Color::Rgb(108, 112, 134))
+                    Style::default().fg(Color::DarkGray)
                 };
                 let style = if i == self.cursor && self.state == AppState::Typing {
-                    style.fg(Color::Rgb(205, 214, 244)).add_modifier(Modifier::REVERSED | Modifier::BOLD)
+                    style.fg(Color::White).add_modifier(Modifier::REVERSED | Modifier::BOLD)
                 } else {
                     style
                 };
@@ -385,11 +390,11 @@ impl App {
         let acc_text = format!("{}% accuracy", accuracy.round() as u64);
 
         let wpm_style = if self.final_wpm >= 60.0 {
-            Style::default().fg(Color::Rgb(166, 227, 161)).bold()
+            Style::default().fg(Color::Green).bold()
         } else if self.final_wpm >= 40.0 {
-            Style::default().fg(Color::Rgb(249, 226, 175)).bold()
+            Style::default().fg(Color::Yellow).bold()
         } else {
-            Style::default().fg(Color::Rgb(243, 139, 168)).bold()
+            Style::default().fg(Color::Red).bold()
         };
 
         frame.render_widget(
