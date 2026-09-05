@@ -60,7 +60,7 @@ export function Hero() {
         </div>
       )}
 
-      <div className="hero-content flex h-dvh flex-col items-center justify-center gap-2 text-center md:absolute md:inset-x-0 md:bottom-0 md:h-auto md:justify-center md:gap-3 md:p-6 md:pb-20">
+      <div className="hero-content flex h-dvh flex-col items-center justify-center gap-2 text-center md:absolute md:inset-x-0 md:bottom-0 md:h-auto md:justify-center md:gap-1 md:p-6 md:pb-8">
         <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">
           Practise typing from your terminal
         </h1>
