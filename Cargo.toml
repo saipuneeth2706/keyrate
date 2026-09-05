@@ -8,3 +8,9 @@ ratatui = "0.30"
 crossterm = "0.29"
 color-eyre = "0.6"
 rand = "0.8"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

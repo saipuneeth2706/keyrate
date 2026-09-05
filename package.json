@@ -1,0 +1,41 @@
+{
+  "name": "keyrate",
+  "version": "1.0.0",
+  "description": "practice typing from terminal itself using a simple command",
+  "keywords": [
+    "keyboard",
+    "practice",
+    "ratatui",
+    "tachyonfx",
+    "rust"
+  ],
+  "homepage": "https://github.com/saipuneeth2706/keyrate#readme",
+  "bugs": {
+    "url": "https://github.com/saipuneeth2706/keyrate/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saipuneeth2706/keyrate.git"
+  },
+  "license": "MIT",
+  "author": "saipuneeth2706",
+  "type": "commonjs",
+  "main": "index.js",
+  "bin": {
+    "keyrate": "bin/keyrate.js"
+  },
+  "files": [
+    "bin/keyrate.js",
+    "index.js",
+    "lib"
+  ],
+  "scripts": {
+    "test": "node -e \"console.log('keyrate: ok')\""
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
