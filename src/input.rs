@@ -7,6 +7,9 @@ use crate::words::{TIME_LIMITS, WORD_COUNTS};
 
 impl App {
     pub(crate) fn handle_key(&mut self, key: KeyEvent) {
+        if !key.is_press() {
+            return;
+        }
         match self.state {
             AppState::Typing => self.handle_typing_key(key),
             AppState::Results => self.handle_results_key(key),
