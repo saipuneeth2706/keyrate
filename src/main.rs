@@ -1,4 +1,5 @@
 mod app;
+mod config;
 mod input;
 mod theme;
 mod view;
@@ -30,6 +31,9 @@ OPTIONS:
             env!("CARGO_PKG_VERSION")
         );
         return Ok(());
+    }
+    if std::env::args().any(|a| a == "--rjson") {
+        let _ = crate::config::remove();
     }
     color_eyre::install()?;
     let mut terminal = ratatui::init();

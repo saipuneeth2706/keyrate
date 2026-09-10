@@ -5,14 +5,41 @@ use crossterm::event::{KeyCode, KeyEvent};
 use crate::app::{App, AppState, TestMode};
 use crate::words::{TIME_LIMITS, WORD_COUNTS};
 
+pub(crate) const MAX_NAME_LEN: usize = 24;
+
 impl App {
     pub(crate) fn handle_key(&mut self, key: KeyEvent) {
         if !key.is_press() {
             return;
         }
         match self.state {
+            AppState::Onboarding => self.handle_onboarding_key(key),
             AppState::Typing => self.handle_typing_key(key),
             AppState::Results => self.handle_results_key(key),
+        }
+    }
+
+    fn handle_onboarding_key(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Esc => self.should_quit = true,
+            KeyCode::Backspace => {
+                self.draft_name.pop();
+            }
+            KeyCode::Enter => {
+                let name = self.draft_name.trim().to_string();
+                if name.is_empty() {
+                    return;
+                }
+                self.name = name;
+                let _ = crate::config::save(&crate::config::Config {
+                    name: self.name.clone(),
+                });
+                self.state = AppState::Typing;
+            }
+            KeyCode::Char(c) if !c.is_control() && self.draft_name.len() < MAX_NAME_LEN => {
+                self.draft_name.push(c);
+            }
+            _ => {}
         }
     }
 

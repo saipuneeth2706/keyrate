@@ -4,6 +4,7 @@ use std::time::Instant;
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum AppState {
     #[default]
+    Onboarding,
     Typing,
     Results,
 }
@@ -31,10 +32,13 @@ pub(crate) struct App {
     pub(crate) word_count: usize,
     pub(crate) mode: TestMode,
     pub(crate) time_limit_secs: u64,
+    pub(crate) name: String,
+    pub(crate) draft_name: String,
 }
 
 impl App {
     pub(crate) fn new() -> Self {
+        let config = crate::config::load();
         let mut app = Self {
             text: String::new(),
             typed: Vec::new(),
@@ -43,7 +47,11 @@ impl App {
             start_time: None,
             wpm_samples: Vec::new(),
             last_sample_time: 0.0,
-            state: AppState::Typing,
+            state: if config.is_some() {
+                AppState::Typing
+            } else {
+                AppState::Onboarding
+            },
             total_keystrokes: 0,
             correct_keystrokes: 0,
             final_wpm: 0.0,
@@ -51,6 +59,13 @@ impl App {
             word_count: 25,
             mode: TestMode::Words,
             time_limit_secs: 30,
+            name: config
+                .and_then(|c| {
+                    let name = c.name.trim().to_string();
+                    if name.is_empty() { None } else { Some(name) }
+                })
+                .unwrap_or_default(),
+            draft_name: String::new(),
         };
         app.generate_text();
         app

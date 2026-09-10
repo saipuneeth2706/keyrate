@@ -30,6 +30,7 @@ impl App {
         );
 
         match self.state {
+            AppState::Onboarding => self.view_onboarding(frame, main_area),
             AppState::Typing => self.view_typing(frame, main_area, footer_area),
             AppState::Results => {
                 self.view_typing(frame, main_area, footer_area);
@@ -40,6 +41,7 @@ impl App {
 
     fn elapsed_secs(&self) -> f64 {
         match self.state {
+            AppState::Onboarding => 0.0,
             AppState::Results => {
                 if self.final_wpm > 0.0 {
                     (self.correct_keystrokes as f64 / 5.0) / (self.final_wpm / 60.0)
@@ -56,6 +58,7 @@ impl App {
 
     fn live_wpm(&self) -> f64 {
         match self.state {
+            AppState::Onboarding => 0.0,
             AppState::Results => self.final_wpm,
             AppState::Typing => {
                 let elapsed = self.elapsed_secs();
@@ -150,12 +153,25 @@ impl App {
         }
         frame.render_widget(Paragraph::new(Line::from(selector)), selector_area);
 
-        let title = Line::from(vec![Span::styled(
-            " keyrate ",
-            Style::default()
-                .fg(ACCENT)
-                .add_modifier(ratatui::style::Modifier::BOLD),
-        )]);
+        let title = if self.name.is_empty() {
+            Line::from(vec![Span::styled(
+                " keyrate ",
+                Style::default()
+                    .fg(ACCENT)
+                    .add_modifier(ratatui::style::Modifier::BOLD),
+            )])
+        } else {
+            Line::from(vec![
+                Span::styled(
+                    " keyrate ",
+                    Style::default()
+                        .fg(ACCENT)
+                        .add_modifier(ratatui::style::Modifier::BOLD),
+                ),
+                Span::styled("·", Style::default().dim()),
+                Span::styled(format!(" {} ", self.name), Style::default().fg(EMPHASIS)),
+            ])
+        };
         let block = Block::bordered()
             .border_type(BorderType::Rounded)
             .border_style(Style::default().fg(BORDER))
@@ -313,6 +329,98 @@ impl App {
         ));
 
         Line::from(spans)
+    }
+
+    fn view_onboarding(&self, frame: &mut Frame, area: Rect) {
+        frame.render_widget(
+            Block::new().style(Style::default().bg(Color::Indexed(236))),
+            area,
+        );
+
+        let popup = centered_rect(50, 25, area);
+        frame.render_widget(Clear, popup);
+
+        let title = Line::from(vec![
+            Span::styled(
+                " keyrate ",
+                Style::default()
+                    .fg(ACCENT)
+                    .add_modifier(ratatui::style::Modifier::BOLD),
+            ),
+            Span::styled("·", Style::default().dim()),
+            Span::styled(
+                " first time? ",
+                Style::default()
+                    .fg(EMPHASIS)
+                    .add_modifier(ratatui::style::Modifier::BOLD),
+            ),
+        ]);
+
+        let block = Block::bordered()
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(BORDER))
+            .shadow(Shadow::default().offset(Offset::new(1, 1)))
+            .title(title);
+        let inner = block.inner(popup);
+        frame.render_widget(block, popup);
+
+        if inner.width < 10 || inner.height < 5 {
+            return;
+        }
+
+        let [prompt_area, input_area, hint_area] = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(3),
+            Constraint::Length(1),
+        ])
+        .areas(inner);
+
+        frame.render_widget(
+            Paragraph::new(Line::from(Span::styled(
+                " welcome! what should we call you? ",
+                Style::default().fg(MUTED),
+            ))),
+            prompt_area,
+        );
+
+        let input_block = Block::bordered()
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(BORDER));
+        let input_inner = input_block.inner(input_area);
+        frame.render_widget(input_block, input_area);
+
+        let input_line = Line::from(vec![
+            if self.draft_name.is_empty() {
+                Span::styled(" ", Style::default().fg(MUTED))
+            } else {
+                Span::styled(self.draft_name.clone(), Style::default().fg(EMPHASIS))
+            },
+            Span::styled(
+                "█",
+                Style::default()
+                    .fg(FG_DONE)
+                    .add_modifier(ratatui::style::Modifier::BOLD),
+            ),
+        ]);
+        frame.render_widget(
+            Paragraph::new(input_line),
+            Rect {
+                y: input_inner.y,
+                x: input_inner.x + 1,
+                height: input_inner.height,
+                width: input_inner.width.saturating_sub(2),
+            },
+        );
+
+        let hint = Line::from(vec![
+            " Enter ".bold().fg(ACCENT),
+            "save ".dim(),
+            " Backspace ".bold().fg(ACCENT),
+            "delete ".dim(),
+            " Esc ".bold().fg(ACCENT),
+            "quit ".dim(),
+        ]);
+        frame.render_widget(Paragraph::new(hint), hint_area);
     }
 
     fn view_results(&self, frame: &mut Frame, area: Rect) {
