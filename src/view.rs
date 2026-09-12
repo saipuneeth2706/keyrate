@@ -154,25 +154,27 @@ impl App {
         }
         frame.render_widget(Paragraph::new(Line::from(selector)), selector_area);
 
-        let title = if self.name.is_empty() {
-            Line::from(vec![Span::styled(
-                " keyrate ",
-                Style::default()
-                    .fg(ACCENT)
-                    .add_modifier(ratatui::style::Modifier::BOLD),
-            )])
-        } else {
-            Line::from(vec![
-                Span::styled(
-                    " keyrate ",
-                    Style::default()
-                        .fg(ACCENT)
-                        .add_modifier(ratatui::style::Modifier::BOLD),
-                ),
-                Span::styled("·", Style::default().dim()),
-                Span::styled(format!(" {} ", self.name), Style::default().fg(EMPHASIS)),
-            ])
-        };
+        let mut title = vec![Span::styled(
+            " keyrate ",
+            Style::default()
+                .fg(ACCENT)
+                .add_modifier(ratatui::style::Modifier::BOLD),
+        )];
+        if !self.name.is_empty() {
+            title.push(Span::styled("·", Style::default().dim()));
+            title.push(Span::styled(
+                format!(" {} ", self.name),
+                Style::default().fg(EMPHASIS),
+            ));
+        }
+        if let Some(city) = &self.city {
+            title.push(Span::styled("·", Style::default().dim()));
+            title.push(Span::styled(
+                format!(" {city} "),
+                Style::default().fg(MUTED),
+            ));
+        }
+        let title = Line::from(title);
         let block = Block::bordered()
             .border_type(BorderType::Rounded)
             .border_style(Style::default().fg(BORDER))

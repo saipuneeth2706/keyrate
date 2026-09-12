@@ -1,6 +1,7 @@
 mod app;
 mod config;
 mod input;
+mod location;
 mod scores;
 mod theme;
 mod view;
@@ -36,6 +37,7 @@ OPTIONS:
     if std::env::args().any(|a| a == "--rjson") {
         let _ = crate::config::remove();
         let _ = crate::scores::remove_all();
+        let _ = crate::location::remove();
     }
     color_eyre::install()?;
     let mut terminal = ratatui::init();
@@ -46,6 +48,7 @@ OPTIONS:
 
 fn run(terminal: &mut DefaultTerminal) -> Result<()> {
     let mut app = App::new();
+    crate::location::spawn_fetch(app.location_tx.clone());
 
     loop {
         terminal.draw(|frame| app.view(frame))?;
@@ -56,6 +59,7 @@ fn run(terminal: &mut DefaultTerminal) -> Result<()> {
             app.handle_key(key);
         }
 
+        app.pump_location();
         app.check_time_limit();
 
         if app.should_quit {

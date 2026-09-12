@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::sync::mpsc;
 use std::time::Instant;
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -36,6 +37,9 @@ pub(crate) struct App {
     pub(crate) name: String,
     pub(crate) draft_name: String,
     pub(crate) scores_mode: TestMode,
+    pub(crate) location_tx: mpsc::Sender<crate::location::Location>,
+    location_rx: mpsc::Receiver<crate::location::Location>,
+    pub(crate) city: Option<String>,
 }
 
 impl App {
@@ -61,6 +65,7 @@ impl App {
 
     pub(crate) fn new() -> Self {
         let config = crate::config::load();
+        let (location_tx, location_rx) = mpsc::channel();
         let mut app = Self {
             text: String::new(),
             typed: Vec::new(),
@@ -89,8 +94,19 @@ impl App {
                 .unwrap_or_default(),
             draft_name: String::new(),
             scores_mode: TestMode::Words,
+            location_tx,
+            location_rx,
+            city: None,
         };
         app.generate_text();
         app
+    }
+
+    pub(crate) fn pump_location(&mut self) {
+        while let Ok(loc) = self.location_rx.try_recv() {
+            if !loc.city.is_empty() {
+                self.city = Some(loc.city);
+            }
+        }
     }
 }
