@@ -1,6 +1,7 @@
 mod app;
 mod config;
 mod input;
+mod scores;
 mod theme;
 mod view;
 mod words;
@@ -34,6 +35,7 @@ OPTIONS:
     }
     if std::env::args().any(|a| a == "--rjson") {
         let _ = crate::config::remove();
+        let _ = crate::scores::remove_all();
     }
     color_eyre::install()?;
     let mut terminal = ratatui::init();

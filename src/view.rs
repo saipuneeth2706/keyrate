@@ -36,12 +36,13 @@ impl App {
                 self.view_typing(frame, main_area, footer_area);
                 self.view_results(frame, main_area);
             }
+            AppState::Scores => self.view_scores(frame, main_area, footer_area),
         }
     }
 
     fn elapsed_secs(&self) -> f64 {
         match self.state {
-            AppState::Onboarding => 0.0,
+            AppState::Onboarding | AppState::Scores => 0.0,
             AppState::Results => {
                 if self.final_wpm > 0.0 {
                     (self.correct_keystrokes as f64 / 5.0) / (self.final_wpm / 60.0)
@@ -58,7 +59,7 @@ impl App {
 
     fn live_wpm(&self) -> f64 {
         match self.state {
-            AppState::Onboarding => 0.0,
+            AppState::Onboarding | AppState::Scores => 0.0,
             AppState::Results => self.final_wpm,
             AppState::Typing => {
                 let elapsed = self.elapsed_secs();
@@ -243,6 +244,8 @@ impl App {
             "quit ".dim(),
             " bs ".bold().fg(ACCENT),
             "correct ".dim(),
+            " Ctrl+s ".bold().fg(ACCENT),
+            "scores ".dim(),
             " Alt+bs ".bold().fg(ACCENT),
             "Ctrl+bs ".bold().fg(ACCENT),
             "Ctrl+w ".bold().fg(ACCENT),
@@ -340,21 +343,12 @@ impl App {
         let popup = centered_rect(50, 25, area);
         frame.render_widget(Clear, popup);
 
-        let title = Line::from(vec![
-            Span::styled(
-                " keyrate ",
-                Style::default()
-                    .fg(ACCENT)
-                    .add_modifier(ratatui::style::Modifier::BOLD),
-            ),
-            Span::styled("·", Style::default().dim()),
-            Span::styled(
-                " first time? ",
-                Style::default()
-                    .fg(EMPHASIS)
-                    .add_modifier(ratatui::style::Modifier::BOLD),
-            ),
-        ]);
+        let title = Line::from(vec![Span::styled(
+            " keyrate ",
+            Style::default()
+                .fg(ACCENT)
+                .add_modifier(ratatui::style::Modifier::BOLD),
+        )]);
 
         let block = Block::bordered()
             .border_type(BorderType::Rounded)
@@ -377,7 +371,7 @@ impl App {
 
         frame.render_widget(
             Paragraph::new(Line::from(Span::styled(
-                " welcome! what should we call you? ",
+                " enter name ",
                 Style::default().fg(MUTED),
             ))),
             prompt_area,
@@ -421,6 +415,159 @@ impl App {
             "quit ".dim(),
         ]);
         frame.render_widget(Paragraph::new(hint), hint_area);
+    }
+
+    fn view_scores(&self, frame: &mut Frame, area: Rect, _footer_area: Rect) {
+        let [selector_area, summary_area, list_area] = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Fill(1),
+        ])
+        .areas(area);
+
+        let pill = |active: bool| {
+            if active {
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(ACCENT)
+                    .add_modifier(ratatui::style::Modifier::BOLD)
+            } else {
+                Style::default().fg(MUTED)
+            }
+        };
+        let (words_active, time_active) = match self.scores_mode {
+            TestMode::Words => (true, false),
+            TestMode::Time => (false, true),
+        };
+        let selector = Line::from(vec![
+            Span::styled(
+                " scores ",
+                Style::default()
+                    .fg(ACCENT)
+                    .add_modifier(ratatui::style::Modifier::BOLD),
+            ),
+            Span::styled("[s]", Style::default().dim()),
+            Span::styled("  ", Style::default().dim()),
+            Span::styled(" Words ", pill(words_active)),
+            Span::styled(" | ", Style::default().dim()),
+            Span::styled(" Time ", pill(time_active)),
+        ]);
+        frame.render_widget(Paragraph::new(selector), selector_area);
+
+        let records = crate::scores::load(self.scores_mode);
+        if !records.is_empty() {
+            let best = records
+                .iter()
+                .map(|r| r.wpm)
+                .fold(f64::NEG_INFINITY, f64::max);
+            let avg_wpm = records.iter().map(|r| r.wpm).sum::<f64>() / records.len() as f64;
+            let avg_acc = records.iter().map(|r| r.accuracy).sum::<f64>() / records.len() as f64;
+            let summary = Line::from(vec![
+                Span::styled(format!(" best {:.0} wpm ", best), wpm_tier(best)),
+                Span::styled("·", Style::default().dim()),
+                Span::styled(
+                    format!(" avg {:.0} wpm ", avg_wpm),
+                    Style::default()
+                        .fg(EMPHASIS)
+                        .add_modifier(ratatui::style::Modifier::BOLD),
+                ),
+                Span::styled("·", Style::default().dim()),
+                Span::styled(
+                    format!(" avg acc {:.0}% ", avg_acc),
+                    Style::default()
+                        .fg(EMPHASIS)
+                        .add_modifier(ratatui::style::Modifier::BOLD),
+                ),
+            ]);
+            frame.render_widget(Paragraph::new(summary), summary_area);
+        } else {
+            let summary = Line::from(Span::styled(
+                " no scores logged yet — finish a test to see it here ",
+                Style::default().dim(),
+            ));
+            frame.render_widget(Paragraph::new(summary), summary_area);
+        }
+
+        let block = Block::bordered()
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(BORDER));
+        let inner = block.inner(list_area);
+        frame.render_widget(block, list_area);
+
+        if inner.width < 30 || inner.height < 3 {
+            return;
+        }
+
+        if records.is_empty() {
+            frame.render_widget(
+                Paragraph::new(Line::from(Span::styled(
+                    " nothing here yet ",
+                    Style::default().dim(),
+                )))
+                .centered(),
+                inner,
+            );
+            return;
+        }
+
+        let mut lines: Vec<Line> = Vec::new();
+        let header = Line::from(vec![
+            Span::styled(format!("{:<3}", "#"), Style::default().dim()),
+            Span::styled(format!("{wpm:>5}  ", wpm = "wpm"), Style::default().dim()),
+            Span::styled(format!("{acc:>4}  ", acc = "acc"), Style::default().dim()),
+            Span::styled(format!("{err:>3}  ", err = "err"), Style::default().dim()),
+            Span::styled(format!("cons{:<1}  ", ""), Style::default().dim()),
+            Span::styled(format!("{cfg:<4}", cfg = "cfg"), Style::default().dim()),
+            Span::styled(format!("{date:<12}", date = "date"), Style::default().dim()),
+        ]);
+        lines.push(header);
+
+        for (i, r) in records.iter().rev().take(10).enumerate() {
+            let err_style = if r.errors > 0 {
+                Style::default()
+                    .fg(FG_ERR)
+                    .add_modifier(ratatui::style::Modifier::BOLD)
+            } else {
+                Style::default()
+                    .fg(FG_DONE)
+                    .add_modifier(ratatui::style::Modifier::BOLD)
+            };
+            let cons = if r.consistency < 0.0 {
+                "—".to_string()
+            } else {
+                format!("{:.0}%", r.consistency)
+            };
+            let cfg = match self.scores_mode {
+                TestMode::Time => format!("{}s", r.option),
+                TestMode::Words => format!("{}w", r.option),
+            };
+            lines.push(Line::from(vec![
+                Span::styled(format!("{:<3}", i + 1), Style::default().dim()),
+                Span::styled(format!("{:>5}  ", r.wpm.round() as u64), wpm_tier(r.wpm)),
+                Span::styled(
+                    format!("{:>4}%  ", r.accuracy.round() as u64),
+                    acc_tier(r.accuracy),
+                ),
+                Span::styled(format!("{:>3}  ", r.errors), err_style),
+                Span::styled(
+                    format!("{cons:>5}  "),
+                    if r.consistency < 0.0 {
+                        Style::default().dim()
+                    } else {
+                        acc_tier(r.consistency)
+                    },
+                ),
+                Span::styled(
+                    format!("{cfg:<4}"),
+                    Style::default()
+                        .fg(EMPHASIS)
+                        .add_modifier(ratatui::style::Modifier::BOLD),
+                ),
+                Span::styled(format_date(r.timestamp), Style::default().fg(MUTED)),
+            ]));
+        }
+
+        frame.render_widget(Paragraph::new(lines), inner);
     }
 
     fn view_results(&self, frame: &mut Frame, area: Rect) {
@@ -506,24 +653,7 @@ impl App {
             },
         );
 
-        let consistency = if self.wpm_samples.len() >= 2 {
-            let mean = self.wpm_samples.iter().map(|(_, w)| *w).sum::<f64>()
-                / self.wpm_samples.len() as f64;
-            let var = self
-                .wpm_samples
-                .iter()
-                .map(|(_, w)| (w - mean).powi(2))
-                .sum::<f64>()
-                / self.wpm_samples.len() as f64;
-            let sd = var.sqrt();
-            if mean > 0.0 {
-                (1.0 - sd / mean).clamp(0.0, 1.0) * 100.0
-            } else {
-                0.0
-            }
-        } else {
-            -1.0
-        };
+        let consistency = self.consistency();
 
         let cons_text = if consistency < 0.0 {
             "—".to_string()
@@ -653,11 +783,11 @@ impl App {
 
         let footer_line = Line::from(vec![
             " q ".bold().fg(ACCENT),
-            "again ".dim(),
+            "Start again with same words ".dim(),
             " r ".bold().fg(ACCENT),
-            "gimme new words ".dim(),
+            "Start again with new words".dim(),
             " Esc ".bold().fg(ACCENT),
-            "bye bye ".dim(),
+            "Quit app ".dim(),
         ]);
         frame.render_widget(
             Paragraph::new(footer_line),
@@ -669,6 +799,24 @@ impl App {
             },
         );
     }
+}
+
+fn format_date(ts: u64) -> String {
+    let days = (ts / 86_400) as i64;
+    let z = days + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = if m <= 2 { y + 1 } else { y };
+    const MONTHS: [&str; 12] = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    format!("{} {} {}", MONTHS[(m - 1) as usize], d, y)
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {

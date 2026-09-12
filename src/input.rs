@@ -16,6 +16,20 @@ impl App {
             AppState::Onboarding => self.handle_onboarding_key(key),
             AppState::Typing => self.handle_typing_key(key),
             AppState::Results => self.handle_results_key(key),
+            AppState::Scores => self.handle_scores_key(key),
+        }
+    }
+
+    fn handle_scores_key(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Char('s') | KeyCode::Tab => {
+                self.scores_mode = match self.scores_mode {
+                    TestMode::Time => TestMode::Words,
+                    TestMode::Words => TestMode::Time,
+                };
+            }
+            KeyCode::Esc => self.state = AppState::Typing,
+            _ => {}
         }
     }
 
@@ -61,6 +75,14 @@ impl App {
             KeyCode::Char('2') if self.start_time.is_none() => self.select_option(1),
             KeyCode::Char('3') if self.start_time.is_none() => self.select_option(2),
             KeyCode::Char('4') if self.start_time.is_none() => self.select_option(3),
+            KeyCode::Char('s')
+                if key
+                    .modifiers
+                    .contains(crossterm::event::KeyModifiers::CONTROL) =>
+            {
+                self.scores_mode = self.mode;
+                self.state = AppState::Scores;
+            }
             KeyCode::Backspace if key.modifiers.contains(crossterm::event::KeyModifiers::ALT) => {
                 self.delete_word();
             }
@@ -182,6 +204,30 @@ impl App {
         self.final_wpm = (self.correct_keystrokes as f64 / 5.0) / (elapsed / 60.0);
         self.wpm_samples.push((elapsed, self.final_wpm));
         self.state = AppState::Results;
+
+        if self.total_keystrokes > 0 {
+            let accuracy = (self.correct_keystrokes as f64 / self.total_keystrokes as f64) * 100.0;
+            let option = match self.mode {
+                TestMode::Time => self.time_limit_secs,
+                TestMode::Words => self.word_count as u64,
+            };
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            let _ = crate::scores::append(
+                self.mode,
+                crate::scores::ScoreRecord {
+                    wpm: self.final_wpm,
+                    accuracy,
+                    errors: self.total_keystrokes - self.correct_keystrokes,
+                    consistency: self.consistency(),
+                    time_secs: elapsed,
+                    option,
+                    timestamp,
+                },
+            );
+        }
     }
 
     pub(crate) fn check_time_limit(&mut self) {

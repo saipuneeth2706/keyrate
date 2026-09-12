@@ -7,6 +7,7 @@ pub(crate) enum AppState {
     Onboarding,
     Typing,
     Results,
+    Scores,
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -34,9 +35,30 @@ pub(crate) struct App {
     pub(crate) time_limit_secs: u64,
     pub(crate) name: String,
     pub(crate) draft_name: String,
+    pub(crate) scores_mode: TestMode,
 }
 
 impl App {
+    pub(crate) fn consistency(&self) -> f64 {
+        if self.wpm_samples.len() < 2 {
+            return -1.0;
+        }
+        let mean =
+            self.wpm_samples.iter().map(|(_, w)| *w).sum::<f64>() / self.wpm_samples.len() as f64;
+        let var = self
+            .wpm_samples
+            .iter()
+            .map(|(_, w)| (w - mean).powi(2))
+            .sum::<f64>()
+            / self.wpm_samples.len() as f64;
+        let sd = var.sqrt();
+        if mean > 0.0 {
+            (1.0 - sd / mean).clamp(0.0, 1.0) * 100.0
+        } else {
+            0.0
+        }
+    }
+
     pub(crate) fn new() -> Self {
         let config = crate::config::load();
         let mut app = Self {
@@ -66,6 +88,7 @@ impl App {
                 })
                 .unwrap_or_default(),
             draft_name: String::new(),
+            scores_mode: TestMode::Words,
         };
         app.generate_text();
         app
