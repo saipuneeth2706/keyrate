@@ -17,7 +17,7 @@ use crate::theme::{
 use crate::words::{TIME_LIMITS, WORD_COUNTS};
 
 impl App {
-    pub(crate) fn view(&self, frame: &mut Frame) {
+    pub(crate) fn view(&mut self, frame: &mut Frame) {
         let [main_area, footer_space] =
             Layout::vertical([Constraint::Fill(1), Constraint::Length(2)]).areas(frame.area());
         let [footer_rule, footer_area] =
@@ -72,7 +72,7 @@ impl App {
         }
     }
 
-    fn view_typing(&self, frame: &mut Frame, area: Rect, footer_area: Rect) {
+    fn view_typing(&mut self, frame: &mut Frame, area: Rect, footer_area: Rect) {
         let [selector_area, text_area, _] = Layout::vertical([
             Constraint::Length(1),
             Constraint::Fill(1),
@@ -254,6 +254,16 @@ impl App {
             "word ".dim(),
         ]);
         frame.render_widget(Paragraph::new(footer), footer_area);
+
+        if self.state == AppState::Typing {
+            self.fx.update(AppState::Typing);
+            self.fx.consume_transitions(selector_area, para_area);
+            self.fx
+                .entrance_if_none(|| crate::fx::typing_entrance(text_area));
+            self.fx
+                .ambient_if_none(|| crate::fx::typing_ambient(para_area));
+            self.fx.render(frame, area);
+        }
     }
 
     fn status_line(&self) -> Line<'static> {
@@ -336,7 +346,7 @@ impl App {
         Line::from(spans)
     }
 
-    fn view_onboarding(&self, frame: &mut Frame, area: Rect) {
+    fn view_onboarding(&mut self, frame: &mut Frame, area: Rect) {
         frame.render_widget(
             Block::new().style(Style::default().bg(Color::Indexed(236))),
             area,
@@ -417,9 +427,16 @@ impl App {
             "quit ".dim(),
         ]);
         frame.render_widget(Paragraph::new(hint), hint_area);
+
+        self.fx.update(AppState::Onboarding);
+        self.fx
+            .entrance_if_none(|| crate::fx::onboarding_entrance(popup));
+        self.fx
+            .ambient_if_none(|| crate::fx::onboarding_ambient(input_area));
+        self.fx.render(frame, area);
     }
 
-    fn view_scores(&self, frame: &mut Frame, area: Rect, _footer_area: Rect) {
+    fn view_scores(&mut self, frame: &mut Frame, area: Rect, _footer_area: Rect) {
         let [selector_area, summary_area, list_area] = Layout::vertical([
             Constraint::Length(1),
             Constraint::Length(1),
@@ -570,9 +587,16 @@ impl App {
         }
 
         frame.render_widget(Paragraph::new(lines), inner);
+
+        self.fx.update(AppState::Scores);
+        self.fx
+            .entrance_if_none(|| crate::fx::scores_entrance(area));
+        self.fx
+            .ambient_if_none(|| crate::fx::scores_ambient(summary_area));
+        self.fx.render(frame, area);
     }
 
-    fn view_results(&self, frame: &mut Frame, area: Rect) {
+    fn view_results(&mut self, frame: &mut Frame, area: Rect) {
         frame.render_widget(
             Block::new().style(Style::default().bg(Color::Indexed(236))),
             area,
@@ -800,6 +824,13 @@ impl App {
                 width: popup.width,
             },
         );
+
+        self.fx.update(AppState::Results);
+        self.fx
+            .entrance_if_none(|| crate::fx::results_entrance(popup));
+        self.fx
+            .ambient_if_none(|| crate::fx::results_ambient(head_area));
+        self.fx.render(frame, area);
     }
 }
 

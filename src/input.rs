@@ -70,6 +70,7 @@ impl App {
                 self.delay_queue.clear();
                 self.cursor = 0;
                 self.generate_text();
+                self.fx.flag_test_switch();
             }
             KeyCode::Char('1') if self.start_time.is_none() => self.select_option(0),
             KeyCode::Char('2') if self.start_time.is_none() => self.select_option(1),
@@ -119,6 +120,7 @@ impl App {
                     self.typed.push(Some(c));
                     self.delay_queue.push_back(c);
                 } else {
+                    self.fx.flash(crate::fx::wrong_key_flash);
                     self.typed.push(Some(c));
                     self.delay_queue.push_back(c);
                 }
@@ -186,11 +188,13 @@ impl App {
             TestMode::Words => {
                 if let Some(&wc) = WORD_COUNTS.get(index) {
                     self.set_word_count(wc);
+                    self.fx.flag_test_switch();
                 }
             }
             TestMode::Time => {
                 if let Some(&secs) = TIME_LIMITS.get(index) {
                     self.set_time_limit(secs);
+                    self.fx.flag_selector_switch();
                 }
             }
         }

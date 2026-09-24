@@ -40,6 +40,7 @@ pub(crate) struct App {
     pub(crate) location_tx: mpsc::Sender<crate::location::Location>,
     location_rx: mpsc::Receiver<crate::location::Location>,
     pub(crate) city: Option<String>,
+    pub(crate) fx: crate::fx::Fx,
 }
 
 impl App {
@@ -97,6 +98,7 @@ impl App {
             location_tx,
             location_rx,
             city: None,
+            fx: crate::fx::Fx::new(),
         };
         app.generate_text();
         app

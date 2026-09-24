@@ -1,5 +1,6 @@
 mod app;
 mod config;
+mod fx;
 mod input;
 mod location;
 mod scores;
@@ -7,7 +8,7 @@ mod theme;
 mod view;
 mod words;
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use color_eyre::eyre::Result;
 use crossterm::event::{self, Event};
@@ -49,8 +50,13 @@ OPTIONS:
 fn run(terminal: &mut DefaultTerminal) -> Result<()> {
     let mut app = App::new();
     crate::location::spawn_fetch(app.location_tx.clone());
+    let mut last_draw = Instant::now();
 
     loop {
+        let now = Instant::now();
+        app.fx.set_tick(now.duration_since(last_draw));
+        last_draw = now;
+
         terminal.draw(|frame| app.view(frame))?;
 
         if event::poll(Duration::from_millis(16))?
